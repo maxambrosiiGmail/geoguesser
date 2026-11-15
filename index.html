@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1a2b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Geo">
+  <title>Где это?</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Старт -->
+  <section id="screen-start" class="screen active">
+    <div class="card">
+      <h1>🌍 Где это?</h1>
+      <p class="sub">Угадай место по фото. Играйте по очереди на одном телефоне.</p>
+
+      <label>Игрок 1
+        <input id="name1" type="text" maxlength="14" value="Я" autocomplete="off">
+      </label>
+      <label>Игрок 2
+        <input id="name2" type="text" maxlength="14" value="Жена" autocomplete="off">
+      </label>
+      <label>Раундов
+        <select id="rounds">
+          <option>3</option><option selected>5</option><option>8</option><option>10</option>
+        </select>
+      </label>
+      <label class="check"><input id="solo" type="checkbox"> Один игрок</label>
+      <label class="check"><input id="labels" type="checkbox" checked> Подписи на карте</label>
+
+      <button id="btn-start" class="primary">Играть</button>
+      <p id="start-error" class="error" hidden></p>
+    </div>
+  </section>
+
+  <!-- Загрузка -->
+  <section id="screen-loading" class="screen">
+    <div class="center">
+      <div class="spinner"></div>
+      <p id="loading-text">Ищу места по миру…</p>
+    </div>
+  </section>
+
+  <!-- Игра -->
+  <section id="screen-game" class="screen">
+    <div id="photo-wrap"><img id="photo" alt="" draggable="false"></div>
+    <div id="hud">
+      <span id="hud-round"></span>
+      <span id="hud-player"></span>
+    </div>
+    <button id="btn-zoom" class="fab-small" aria-label="Приблизить">🔍</button>
+    <button id="btn-map" class="fab">🗺 Карта</button>
+
+    <div id="guess-overlay" hidden>
+      <div id="guess-map"></div>
+      <div class="guess-bar">
+        <button id="btn-close-map" class="secondary">Назад к фото</button>
+        <button id="btn-guess" class="primary" disabled>Угадать</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Передай телефон -->
+  <section id="screen-pass" class="screen">
+    <div class="center">
+      <p class="sub">Передай телефон</p>
+      <h2 id="pass-name"></h2>
+      <button id="btn-pass-ok" class="primary">Я готов(а)</button>
+    </div>
+  </section>
+
+  <!-- Результат раунда -->
+  <section id="screen-result" class="screen">
+    <div id="result-map"></div>
+    <div id="result-panel">
+      <div id="result-rows"></div>
+      <button id="btn-next" class="primary">Дальше</button>
+    </div>
+  </section>
+
+  <!-- Итог -->
+  <section id="screen-final" class="screen">
+    <div class="card">
+      <h1 id="final-title">Итог</h1>
+      <div id="final-rows"></div>
+      <button id="btn-again" class="primary">Сыграть ещё</button>
+    </div>
+  </section>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="geo.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

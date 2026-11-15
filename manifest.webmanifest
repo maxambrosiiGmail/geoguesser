@@ -1,0 +1,12 @@
+{
+  "name": "Где это?",
+  "short_name": "Где это?",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f1a2b",
+  "theme_color": "#0f1a2b",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
