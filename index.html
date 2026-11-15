@@ -28,6 +28,15 @@
       <label>Игрок 2
         <input id="name2" type="text" maxlength="14" value="Жена" autocomplete="off">
       </label>
+      <label>Режим
+        <select id="mode">
+          <option value="sv">Street View (нужен ключ Google)</option>
+          <option value="photo">Фото (бесплатно)</option>
+        </select>
+      </label>
+      <label id="key-label">Ключ Google Maps API
+        <input id="apikey" type="password" autocomplete="off" placeholder="AIza…">
+      </label>
       <label>Раундов
         <select id="rounds">
           <option>3</option><option selected>5</option><option>8</option><option>10</option>
@@ -51,6 +60,7 @@
 
   <!-- Игра -->
   <section id="screen-game" class="screen">
+    <div id="pano" hidden></div>
     <div id="photo-wrap"><img id="photo" alt="" draggable="false"></div>
     <div id="hud">
       <span id="hud-round"></span>

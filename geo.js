@@ -75,10 +75,10 @@
   }
 
   // Случайная точка рядом со случайной опорной.
-  function randomPoint(rng) {
+  function randomPoint(rng, spread) {
     rng = rng || Math.random;
     var s = SEEDS[Math.floor(rng() * SEEDS.length)];
-    var spread = 0.8; // градусов
+    spread = spread || 0.8; // градусов
     var lat = clampLat(s[0] + (rng() - 0.5) * spread);
     var lng = wrapLng(s[1] + (rng() - 0.5) * spread / Math.max(0.2, Math.cos(toRad(s[0]))));
     return { lat: lat, lng: lng };

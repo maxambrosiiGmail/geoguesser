@@ -1,5 +1,5 @@
 /* Минимальный service worker: network-first для своих файлов, офлайн-запас оболочки. */
-var CACHE = 'geo-shell-v1';
+var CACHE = 'geo-shell-v2';
 var SHELL = ['./', 'index.html', 'style.css', 'app.js', 'geo.js', 'manifest.webmanifest', 'icon.svg'];
 
 self.addEventListener('install', function (e) {

@@ -7,7 +7,7 @@
 
   var state = null;
   var guessMap = null, guessTiles = null, guessMarker = null, pendingGuess = null;
-  var resultMap = null;
+  var resultMap = null, pano = null;
 
   /* ---------- утилиты ---------- */
   function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
@@ -71,11 +71,58 @@
     throw new Error('Не удалось найти места. Проверь интернет и попробуй ещё раз.');
   }
 
+  function loadGoogle(key) {
+    if (window.google && google.maps && google.maps.StreetViewService) return Promise.resolve();
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      var timer = setTimeout(function () { if (!done) { done = true; reject(new Error('Google Maps не загрузился. Проверь интернет.')); } }, 15000);
+      window.gm_authFailure = function () {
+        if (!done) { done = true; clearTimeout(timer); reject(new Error('Ключ Google не принят. Проверь ключ, включён ли Maps JavaScript API и привязана ли карта.')); }
+      };
+      window.__gmReady = async function () {
+        try {
+          if (google.maps.importLibrary) await google.maps.importLibrary('streetView');
+          if (!done) { done = true; clearTimeout(timer); resolve(); }
+        } catch (e) { if (!done) { done = true; clearTimeout(timer); reject(e); } }
+      };
+      var sc = document.createElement('script');
+      sc.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(key) + '&v=weekly&callback=__gmReady';
+      sc.async = true;
+      sc.onerror = function () { if (!done) { done = true; clearTimeout(timer); reject(new Error('Не удалось загрузить Google Maps.')); } };
+      document.head.appendChild(sc);
+    });
+  }
+
+  function findStreetView(excludeIds) {
+    var svc = new google.maps.StreetViewService();
+    function ask(pt) {
+      return new Promise(function (resolve) {
+        svc.getPanorama({
+          location: { lat: pt.lat, lng: pt.lng }, radius: 50000,
+          preference: google.maps.StreetViewPreference.NEAREST,
+          source: google.maps.StreetViewSource.OUTDOOR
+        }, function (data, status) { resolve(status === 'OK' ? data : null); });
+      });
+    }
+    return (async function () {
+      for (var attempt = 0; attempt < 40; attempt++) {
+        var data = await ask(Geo.randomPoint(null, 4));
+        if (!data || !data.location || !data.location.pano) continue;
+        if (!/google/i.test(data.copyright || '')) continue; // только официальное покрытие
+        if (excludeIds.indexOf(data.location.pano) !== -1) continue;
+        var ll = data.location.latLng;
+        return { id: data.location.pano, pano: data.location.pano, lat: ll.lat(), lng: ll.lng() };
+      }
+      throw new Error('Не удалось найти панорамы. Попробуй ещё раз.');
+    })();
+  }
+
+  var state_mode = 'photo';
   async function loadAllLocations(n) {
     var locs = [], ids = [];
     for (var i = 0; i < n; i++) {
       $('loading-text').textContent = 'Ищу места по миру… ' + (i + 1) + ' / ' + n;
-      var loc = await findLocation(ids);
+      var loc = state_mode === 'sv' ? await findStreetView(ids) : await findLocation(ids);
       ids.push(loc.id);
       locs.push(loc);
     }
@@ -88,6 +135,10 @@
     $('name2').value = load('geo.name2', 'Жена');
     $('rounds').value = load('geo.rounds', '5');
     $('solo').checked = load('geo.solo', '0') === '1';
+    $('apikey').value = load('geo.key', '');
+    $('mode').value = load('geo.mode', $('apikey').value ? 'sv' : 'photo');
+    $('key-label').hidden = $('mode').value !== 'sv';
+    $('mode').addEventListener('change', function () { $('key-label').hidden = $('mode').value !== 'sv'; });
     $('labels').checked = load('geo.labels', '1') === '1';
     $('name2').parentElement.hidden = $('solo').checked;
     $('solo').addEventListener('change', function () { $('name2').parentElement.hidden = $('solo').checked; });
@@ -102,13 +153,23 @@
     store('geo.name1', $('name1').value); store('geo.name2', $('name2').value);
     store('geo.rounds', String(rounds)); store('geo.solo', solo ? '1' : '0'); store('geo.labels', labels ? '1' : '0');
 
+    var mode = $('mode').value;
+    var key = $('apikey').value.trim();
+    store('geo.mode', mode); store('geo.key', key);
     $('start-error').hidden = true;
+    if (mode === 'sv' && !key) {
+      $('start-error').textContent = 'Вставь ключ Google Maps API или выбери режим «Фото».';
+      $('start-error').hidden = false;
+      return;
+    }
     show('loading');
     try {
+      state_mode = mode;
+      if (mode === 'sv') { $('loading-text').textContent = 'Подключаю Google Street View…'; await loadGoogle(key); }
       var locs = await loadAllLocations(rounds);
       state = {
         players: names.map(function (n, i) { return { name: n, color: COLORS[i], total: 0 }; }),
-        rounds: rounds, round: 0, turn: 0, locs: locs, guesses: [], labels: labels, first: true
+        rounds: rounds, mode: mode, round: 0, turn: 0, locs: locs, guesses: [], labels: labels, first: true
       };
       nextTurn();
     } catch (e) {
@@ -136,7 +197,9 @@
     var wrap = $('photo-wrap');
     wrap.classList.remove('zoomed');
     wrap.scrollTop = 0; wrap.scrollLeft = 0;
-    $('photo').src = loc.img;
+    var sv = state.mode === 'sv';
+    wrap.hidden = sv; $('pano').hidden = !sv; $('btn-zoom').hidden = sv;
+    if (!sv) $('photo').src = loc.img;
     $('hud-round').textContent = 'Раунд ' + (state.round + 1) + ' / ' + state.rounds;
     $('hud-player').textContent = p.name;
     $('hud-player').style.borderLeft = '5px solid ' + p.color;
@@ -147,6 +210,19 @@
     if (guessMarker) { guessMap.removeLayer(guessMarker); guessMarker = null; }
     guessMap.setView([25, 10], 2);
     show('game');
+    if (sv) {
+      if (!pano) {
+        pano = new google.maps.StreetViewPanorama($('pano'), {
+          addressControl: false, showRoadLabels: false, fullscreenControl: false,
+          enableCloseButton: false, motionTracking: false, motionTrackingControl: false,
+          zoomControl: true, panControl: true, linksControl: true, clickToGo: true
+        });
+      }
+      pano.setPano(loc.pano);
+      pano.setPov({ heading: Math.random() * 360, pitch: 0 });
+      pano.setZoom(0);
+      pano.setVisible(true);
+    }
   }
 
   function ensureGuessMap() {
